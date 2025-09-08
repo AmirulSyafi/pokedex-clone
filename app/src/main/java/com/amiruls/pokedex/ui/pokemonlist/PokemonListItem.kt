@@ -36,7 +36,7 @@ fun PokemonListItem(
 
         Text(
             text = name,
-            style = MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.bodyLarge
         )
     }
 }

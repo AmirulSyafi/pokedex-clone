@@ -4,69 +4,125 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items // Added import
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.amiruls.pokedex.data.model.Pokemon
+import com.amiruls.pokedex.R
 import com.amiruls.pokedex.ui.pokemonlist.PokemonListViewModel.PokemonListUiState
-import com.amiruls.pokedex.ui.theme.AppTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PokemonListScreen(
     viewModel: PokemonListViewModel = hiltViewModel(),
-    onPokemonClick: (Int) -> Unit
+    onPokemonClick: (String) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val sortType by viewModel.sortType.collectAsState()
 
-    when (state) {
-        is PokemonListUiState.Loading -> {
-            CircularProgressIndicator()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(id = R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = { viewModel.toggleSort() }) {
+                        when (sortType) {
+                            SortType.BY_ID -> Icon(
+                                Icons.Default.List,
+                                contentDescription = "Sort by ID"
+                            )
+
+                            SortType.NAME_ASC -> Icon(
+                                Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Sort A-Z"
+                            )
+
+                            SortType.NAME_DESC -> Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Sort Z-A"
+                            )
+                        }
+                    }
+                }
+            )
         }
+    ) { innerPadding ->
+        when (state) {
+            is PokemonListUiState.Loading -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center))
+            }
 
-        is PokemonListUiState.Success -> {
-            val list = (state as PokemonListUiState.Success).data
-            LazyColumn {
-                items(list) { pokemon ->
-                    PokemonListItem(
-                        name = pokemon.name,
-                        spriteUrl = pokemon.sprite,
-                        modifier = Modifier
-                            .clickable { onPokemonClick(pokemon.id) }
-                    )
+            is PokemonListUiState.Success -> {
+                val pokemons = (state as PokemonListUiState.Success).pokemons
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    items(pokemons) { pokemon ->
+                        PokemonListItem(
+                            name = pokemon.name,
+                            spriteUrl = pokemon.sprite,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPokemonClick(pokemon.name) }
+                        )
+                    }
                 }
             }
-        }
 
-        is PokemonListUiState.Empty -> {
-            Text("No Pokémon found.")
-        }
-
-        is PokemonListUiState.Error -> {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text((state as PokemonListUiState.Error).message)
-                Button(onClick = { viewModel.loadPokemonList() }) {
-                    Text("Retry")
+            is PokemonListUiState.Error -> {
+                val message = (state as PokemonListUiState.Error).message
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Text(
+                            text = message,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { viewModel.loadPokemonList() }) {
+                            Text("Retry")
+                        }
+                    }
                 }
             }
         }
     }
 }
-
-
-
