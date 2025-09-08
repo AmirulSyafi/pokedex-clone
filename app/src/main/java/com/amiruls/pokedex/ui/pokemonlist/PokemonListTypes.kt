@@ -5,3 +5,8 @@ enum class SortType {
     NAME_ASC,
     NAME_DESC
 }
+
+enum class PokemonFilter {
+    ALL,
+    FAVORITES
+}

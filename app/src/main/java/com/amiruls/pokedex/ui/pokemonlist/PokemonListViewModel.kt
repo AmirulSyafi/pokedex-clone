@@ -20,6 +20,9 @@ class PokemonListViewModel @Inject constructor(
     val uiState: StateFlow<PokemonListUiState> = _uiState.asStateFlow()
     private val _sortType = MutableStateFlow(SortType.BY_ID)
     val sortType = _sortType.asStateFlow()
+    private val _filter = MutableStateFlow(PokemonFilter.ALL)
+    val filter: StateFlow<PokemonFilter> = _filter
+    private var allPokemons = emptyList<Pokemon>()
 
     init {
         loadPokemonList()
@@ -29,8 +32,8 @@ class PokemonListViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = PokemonListUiState.Loading
-                val result = repository.getPokemonList()
-                _uiState.value = PokemonListUiState.Success(applySort(result, _sortType.value))
+                allPokemons = repository.getPokemonList()
+                applySortAndFilter()
             } catch (e: Exception) {
                 _uiState.value = PokemonListUiState.Error(
                     e.message ?: "Something went wrong. Please try again."
@@ -40,28 +43,33 @@ class PokemonListViewModel @Inject constructor(
     }
 
     fun toggleSort() {
-        val nextSort = when (_sortType.value) {
+        _sortType.value = when (_sortType.value) {
             SortType.BY_ID -> SortType.NAME_ASC
             SortType.NAME_ASC -> SortType.NAME_DESC
             SortType.NAME_DESC -> SortType.BY_ID
         }
-        _sortType.value = nextSort
-
-        // Re-apply sorting on current data if available
-        val currentState = _uiState.value
-        if (currentState is PokemonListUiState.Success) {
-            _uiState.value = currentState.copy(
-                pokemons = applySort(currentState.pokemons, nextSort)
-            )
-        }
+        applySortAndFilter()
     }
 
-    private fun applySort(list: List<Pokemon>, sortType: SortType): List<Pokemon> {
-        return when (sortType) {
+    fun setFilter(filter: PokemonFilter) {
+        _filter.value = filter
+        applySortAndFilter()
+    }
+
+    private fun applySortAndFilter() {
+        var list = allPokemons
+        // Apply filter
+        list = when (_filter.value) {
+            PokemonFilter.ALL -> list
+            PokemonFilter.FAVORITES -> list.filter { it.isFavorite }
+        }
+        // Apply sort
+        list = when (_sortType.value) {
             SortType.BY_ID -> list.sortedBy { it.id }
             SortType.NAME_ASC -> list.sortedBy { it.name }
             SortType.NAME_DESC -> list.sortedByDescending { it.name }
         }
+        _uiState.value = PokemonListUiState.Success(list)
     }
 
     sealed class PokemonListUiState {

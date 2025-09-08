@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -43,6 +45,7 @@ fun PokemonListScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val sortType by viewModel.sortType.collectAsState()
+    val filter by viewModel.filter.collectAsState()
 
     Scaffold(
         topBar = {
@@ -51,74 +54,88 @@ fun PokemonListScreen(
                 actions = {
                     IconButton(onClick = { viewModel.toggleSort() }) {
                         when (sortType) {
-                            SortType.BY_ID -> Icon(
-                                Icons.Default.List,
-                                contentDescription = "Sort by ID"
-                            )
-
-                            SortType.NAME_ASC -> Icon(
-                                Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Sort A-Z"
-                            )
-
-                            SortType.NAME_DESC -> Icon(
-                                Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Sort Z-A"
-                            )
+                            SortType.BY_ID -> Icon(Icons.Default.List, contentDescription = "Sort by ID")
+                            SortType.NAME_ASC -> Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Sort A-Z")
+                            SortType.NAME_DESC -> Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Sort Z-A")
                         }
                     }
                 }
             )
         }
     ) { innerPadding ->
-        when (state) {
-            is PokemonListUiState.Loading -> Box(
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.Start
             ) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+                FilterChip(
+                    selected = filter == PokemonFilter.ALL,
+                    onClick = { viewModel.setFilter(PokemonFilter.ALL) },
+                    label = { Text("All") },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                FilterChip(
+                    selected = filter == PokemonFilter.FAVORITES,
+                    onClick = { viewModel.setFilter(PokemonFilter.FAVORITES) },
+                    label = { Text("Favorites") }
+                )
             }
 
-            is PokemonListUiState.Success -> {
-                val pokemons = (state as PokemonListUiState.Success).pokemons
-                LazyColumn(
+            when (state) {
+                is PokemonListUiState.Loading -> Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(pokemons) { pokemon ->
-                        PokemonListItem(
-                            name = pokemon.name,
-                            spriteUrl = pokemon.sprite,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onPokemonClick(pokemon.name) }
-                        )
+                    CircularProgressIndicator()
+                }
+
+                is PokemonListUiState.Success -> {
+                    val pokemons = (state as PokemonListUiState.Success).pokemons
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        items(pokemons) { pokemon ->
+                            PokemonListItem(
+                                name = pokemon.name,
+                                spriteUrl = pokemon.sprite,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onPokemonClick(pokemon.name) }
+                            )
+                        }
                     }
                 }
-            }
 
-            is PokemonListUiState.Error -> {
-                val message = (state as PokemonListUiState.Error).message
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.align(Alignment.Center)
+                is PokemonListUiState.Error -> {
+                    val message = (state as PokemonListUiState.Error).message
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = message,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { viewModel.loadPokemonList() }) {
-                            Text("Retry")
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = message,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = { viewModel.loadPokemonList() }) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }

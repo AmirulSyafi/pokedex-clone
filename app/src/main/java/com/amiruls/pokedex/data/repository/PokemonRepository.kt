@@ -30,7 +30,8 @@ class PokemonRepository @Inject constructor(
                 //for this coding challenge we will use static sprite
                 sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$id.png",
                 //empty abilityIds indicate not fetched yet
-                abilityIds = emptyList()
+                abilityIds = emptyList(),
+                isFavorite = false
             )
         }
 
