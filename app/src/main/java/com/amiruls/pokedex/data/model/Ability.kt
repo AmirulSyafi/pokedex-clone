@@ -1,8 +1,7 @@
 package com.amiruls.pokedex.data.model
 
-data class PokemonDetail(
+data class Ability(
     val id: Int,
     val name: String,
-    val height: Int,
-    val weight: Int,
+    val description: String,
 )

@@ -74,6 +74,7 @@ dependencies {
     // Hilt (DI)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     //Glide
     implementation(libs.glide.compose)
