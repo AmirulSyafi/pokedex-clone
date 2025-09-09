@@ -43,7 +43,8 @@ fun PokemonListScreen(
     viewModel: PokemonListViewModel = hiltViewModel(),
     onPokemonClick: (Int) -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val pokemonList by viewModel.pokemonListStateFlow.collectAsState()
     val sortType by viewModel.sortType.collectAsState()
     val filter by viewModel.filter.collectAsState()
 
@@ -54,9 +55,20 @@ fun PokemonListScreen(
                 actions = {
                     IconButton(onClick = { viewModel.toggleSort() }) {
                         when (sortType) {
-                            SortType.BY_ID -> Icon(Icons.Default.List, contentDescription = "Sort by ID")
-                            SortType.NAME_ASC -> Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Sort A-Z")
-                            SortType.NAME_DESC -> Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Sort Z-A")
+                            SortType.BY_ID -> Icon(
+                                Icons.Default.List,
+                                contentDescription = "Sort by ID"
+                            )
+
+                            SortType.NAME_ASC -> Icon(
+                                Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Sort A-Z"
+                            )
+
+                            SortType.NAME_DESC -> Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Sort Z-A"
+                            )
                         }
                     }
                 }
@@ -68,26 +80,7 @@ fun PokemonListScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                FilterChip(
-                    selected = filter == PokemonFilter.ALL,
-                    onClick = { viewModel.setFilter(PokemonFilter.ALL) },
-                    label = { Text("All") },
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                FilterChip(
-                    selected = filter == PokemonFilter.FAVORITES,
-                    onClick = { viewModel.setFilter(PokemonFilter.FAVORITES) },
-                    label = { Text("Favorites") }
-                )
-            }
-
-            when (state) {
+            when (uiState) {
                 is PokemonListUiState.Loading -> Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -97,36 +90,15 @@ fun PokemonListScreen(
                     CircularProgressIndicator()
                 }
 
-                is PokemonListUiState.Success -> {
-                    val pokemons = (state as PokemonListUiState.Success).pokemons
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
-                        items(pokemons) { pokemon ->
-                            PokemonListItem(
-                                name = pokemon.name,
-                                spriteUrl = pokemon.sprite,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onPokemonClick(pokemon.id) }
-                            )
-                        }
-                    }
-                }
-
                 is PokemonListUiState.Error -> {
-                    val message = (state as PokemonListUiState.Error).message
+                    val message = (uiState as PokemonListUiState.Error).message
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = message,
                                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -136,6 +108,45 @@ fun PokemonListScreen(
                             Button(onClick = { viewModel.loadPokemonList() }) {
                                 Text("Retry")
                             }
+                        }
+                    }
+                }
+
+                is PokemonListUiState.ShowList -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        FilterChip(
+                            selected = filter == PokemonFilter.ALL,
+                            onClick = { viewModel.setFilter(PokemonFilter.ALL) },
+                            label = { Text("All") },
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        FilterChip(
+                            selected = filter == PokemonFilter.FAVORITES,
+                            onClick = { viewModel.setFilter(PokemonFilter.FAVORITES) },
+                            label = { Text("Favorites") }
+                        )
+                    }
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        items(
+                            items = pokemonList,
+                            key = { pokemon -> pokemon.id }
+                        ) { pokemon ->
+                            PokemonListItem(
+                                name = pokemon.name,
+                                spriteUrl = pokemon.sprite,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onPokemonClick(pokemon.id) }
+                            )
                         }
                     }
                 }

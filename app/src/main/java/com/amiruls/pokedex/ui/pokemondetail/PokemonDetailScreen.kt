@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Favorite
@@ -40,6 +42,7 @@ fun PokemonDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val pokemon by viewModel.pokemon.collectAsState()
+    val abilities by viewModel.abilities.collectAsState()
 
     Scaffold(
         topBar = {
@@ -77,13 +80,6 @@ fun PokemonDetailScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            GlideImage(
-                model = pokemon.sprite,
-                contentDescription = pokemon.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
             when (state) {
                 is PokemonDetailUiState.Loading -> Box(
                     modifier = Modifier
@@ -92,16 +88,6 @@ fun PokemonDetailScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
-                }
-
-                is PokemonDetailUiState.Success -> {
-                    val abilities = (state as PokemonDetailUiState.Success).abilities
-                    abilities.forEach { ability ->
-                        PokemonDetailItem(
-                            name = ability.name,
-                            description = ability.description
-                        )
-                    }
                 }
 
                 is PokemonDetailUiState.Error -> {
@@ -124,6 +110,32 @@ fun PokemonDetailScreen(
                             Button(onClick = { viewModel.loadAbilities() }) {
                                 Text("Retry")
                             }
+                        }
+                    }
+                }
+
+                is PokemonDetailUiState.ShowAbilities -> {
+                    GlideImage(
+                        model = pokemon.sprite,
+                        contentDescription = pokemon.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        items(
+                            items = abilities,
+                            key = { ability -> ability.id }
+                        ) { ability ->
+                            PokemonDetailItem(
+                                name = ability.name,
+                                description = ability.description,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }

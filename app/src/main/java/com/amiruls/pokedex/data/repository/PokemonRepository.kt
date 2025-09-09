@@ -3,6 +3,9 @@ package com.amiruls.pokedex.data.repository
 import com.amiruls.pokedex.data.model.Ability
 import com.amiruls.pokedex.data.model.Pokemon
 import com.amiruls.pokedex.data.remote.PokemonApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,11 +13,16 @@ import javax.inject.Singleton
 class PokemonRepository @Inject constructor(
     private val api: PokemonApi
 ) {
-    private val pokemonCache = mutableMapOf<Int, Pokemon>()
+    // Repository
+    private val _pokemonCacheFlow = MutableStateFlow<Map<Int, Pokemon>>(emptyMap())
+    val pokemonCacheFlow: StateFlow<Map<Int, Pokemon>> = _pokemonCacheFlow.asStateFlow()
 
-    private val abilityCache = mutableMapOf<Int, Ability>()
-    suspend fun getPokemonList(): List<Pokemon> {
-        if (pokemonCache.isNotEmpty()) return pokemonCache.values.toList()
+    private val _abilityCacheFlow = MutableStateFlow<Map<Int, Ability>>(emptyMap())
+    val abilityCacheFlow: StateFlow<Map<Int, Ability>> = _abilityCacheFlow.asStateFlow()
+
+    suspend fun fetchPokemonList() {
+
+        _pokemonCacheFlow.value = emptyMap()
 
         val json = api.getPokemonList()
         val results = json.getAsJsonArray("results")
@@ -27,23 +35,21 @@ class PokemonRepository @Inject constructor(
                 name = obj["name"].asString.replaceFirstChar {
                     if (it.isLowerCase()) it.titlecase() else it.toString()
                 },
-                //for this coding challenge we will use static sprite
+                //Static default sprite for this project
                 sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$id.png",
-                //empty abilityIds indicate not fetched yet
                 abilityIds = emptyList(),
                 isFavorite = false
             )
         }
 
-        pokemonList.forEach { pokemonCache[it.id] = it }
-        return pokemonCache.values.toList()
+        // Update flow cache
+        _pokemonCacheFlow.value = pokemonList.associateBy { it.id }
     }
 
-    suspend fun getPokemonDetail(id: Int): Pokemon {
+    suspend fun fetchPokemonDetail(id: Int): Pokemon {
 
-        // pokemonCache[id] is guaranteed non-null here because the Pokémon
-        // is always fetched and inserted into the cache before this method is called.
-        val cached = pokemonCache[id]!!
+        // At this stage cache is already populated
+        val cached = _pokemonCacheFlow.value[id]!!
 
         // If cached and already has abilities, just return
         if (cached.abilityIds.isNotEmpty()) {
@@ -60,28 +66,25 @@ class PokemonRepository @Inject constructor(
             extractIdFromUrl(ability.get("url").asString)
         }
 
-        //copy the cached Pokemon, only abilityIds updated
-        val updated = cached.copy(
-            abilityIds = abilityIds
-        )
+        // Copy cached Pokémon, only abilityIds updated
+        val updated = cached.copy(abilityIds = abilityIds)
 
-        pokemonCache[id] = updated
+        // Update cache and emit new state
+        _pokemonCacheFlow.value = _pokemonCacheFlow.value.toMutableMap().apply {
+            this[id] = updated
+        }
 
         return updated
     }
 
-    suspend fun getAbilityDetail(id: Int): Ability {
+    suspend fun fetchAbilityDetail(id: Int): Ability {
         // Return from cache if exists
-        abilityCache[id]?.let { return it }
+        _abilityCacheFlow.value[id]?.let { return it }
 
-        // Fetch detail from API (this should be ability, not pokemon)
         val json = api.getAbilityDetail(id)
-
         val name = json.get("name").asString
 
-        // Parse effect_entries array
         val effectEntries = json.getAsJsonArray("effect_entries")
-
         val description = effectEntries
             .map { it.asJsonObject }
             .firstOrNull { entry ->
@@ -96,19 +99,24 @@ class PokemonRepository @Inject constructor(
             description = description
         )
 
-        abilityCache[id] = ability
+        _abilityCacheFlow.value = _abilityCacheFlow.value.toMutableMap().apply {
+            this[id] = ability
+        }
 
         return ability
     }
+
 
     private fun extractIdFromUrl(url: String): Int {
         return url.trimEnd('/').substringAfterLast("/").toInt()
     }
 
-    // Pokémon already in cache, just return
-    fun getPokemon(id: Int): Pokemon = pokemonCache[id]!!
-    fun updatePokemon(updated: Pokemon) {
-        pokemonCache[updated.id] = updated
+    // Safe to assume it exists, just read from the latest value of the flow
+    fun getPokemon(id: Int): Pokemon = _pokemonCacheFlow.value[id]!!
+    fun updatePokemon(pokemon: Pokemon) {
+        _pokemonCacheFlow.value = _pokemonCacheFlow.value.toMutableMap().apply {
+            put(pokemon.id, pokemon)
+        }
     }
 
 }

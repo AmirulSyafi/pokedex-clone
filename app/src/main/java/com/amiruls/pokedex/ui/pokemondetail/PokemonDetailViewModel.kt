@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.amiruls.pokedex.data.model.Ability
 import com.amiruls.pokedex.data.model.Pokemon
 import com.amiruls.pokedex.data.repository.PokemonRepository
+import com.amiruls.pokedex.ui.pokemonlist.PokemonListViewModel.PokemonListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,7 +29,17 @@ class PokemonDetailViewModel @Inject constructor(
     private val _pokemon = MutableStateFlow(repository.getPokemon(pokemonId))
     val pokemon: StateFlow<Pokemon> = _pokemon
 
-    private val _uiState = MutableStateFlow<PokemonDetailUiState>(PokemonDetailUiState.Loading)
+    val abilities: StateFlow<List<Ability>> =
+        combine(pokemon, repository.abilityCacheFlow) { pokemon, abilityCache ->
+            // Map abilityIds -> Ability objects (only if present in cache)
+            pokemon.abilityIds.mapNotNull { id -> abilityCache[id] }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(0),
+            initialValue = emptyList()
+        )
+
+    private val _uiState = MutableStateFlow<PokemonDetailUiState>(PokemonDetailUiState.ShowAbilities)
     val uiState: StateFlow<PokemonDetailUiState> = _uiState.asStateFlow()
 
     init {
@@ -35,10 +49,18 @@ class PokemonDetailViewModel @Inject constructor(
     fun loadAbilities() {
         viewModelScope.launch {
             try {
-                _uiState.value = PokemonDetailUiState.Loading
-                val pokemon = repository.getPokemonDetail(pokemonId)
-                val abilities = pokemon.abilityIds.map { repository.getAbilityDetail(it) }
-                _uiState.value = PokemonDetailUiState.Success(abilities)
+                // Fetch Pokémon with abilities filled
+                val updatedPokemon = repository.fetchPokemonDetail(pokemonId)
+
+                // Update StateFlow so combine sees new abilityIds
+                _pokemon.value = updatedPokemon
+
+                // Fetch each ability detail
+                updatedPokemon.abilityIds.forEach { abilityId ->
+                    repository.fetchAbilityDetail(abilityId)
+                }
+
+                _uiState.value = PokemonDetailUiState.ShowAbilities
             } catch (e: Exception) {
                 _uiState.value = PokemonDetailUiState.Error(
                     e.message ?: "Something went wrong. Please try again."
@@ -56,7 +78,7 @@ class PokemonDetailViewModel @Inject constructor(
 
     sealed class PokemonDetailUiState {
         object Loading : PokemonDetailUiState()
-        data class Success(val abilities: List<Ability>) : PokemonDetailUiState()
         data class Error(val message: String) : PokemonDetailUiState()
+        object ShowAbilities : PokemonDetailUiState()
     }
 }
