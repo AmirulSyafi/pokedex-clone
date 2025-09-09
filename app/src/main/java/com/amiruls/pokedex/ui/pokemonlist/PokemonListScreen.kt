@@ -41,7 +41,7 @@ import com.amiruls.pokedex.ui.pokemonlist.PokemonListViewModel.PokemonListUiStat
 @Composable
 fun PokemonListScreen(
     viewModel: PokemonListViewModel = hiltViewModel(),
-    onPokemonClick: (String) -> Unit
+    onPokemonClick: (Int) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val sortType by viewModel.sortType.collectAsState()
@@ -110,7 +110,7 @@ fun PokemonListScreen(
                                 spriteUrl = pokemon.sprite,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onPokemonClick(pokemon.name) }
+                                    .clickable { onPokemonClick(pokemon.id) }
                             )
                         }
                     }

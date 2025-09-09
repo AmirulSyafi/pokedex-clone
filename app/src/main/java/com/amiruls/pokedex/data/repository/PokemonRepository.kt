@@ -66,6 +66,7 @@ class PokemonRepository @Inject constructor(
         )
 
         pokemonCache[id] = updated
+
         return updated
     }
 
@@ -103,4 +104,11 @@ class PokemonRepository @Inject constructor(
     private fun extractIdFromUrl(url: String): Int {
         return url.trimEnd('/').substringAfterLast("/").toInt()
     }
+
+    // Pokémon already in cache, just return
+    fun getPokemon(id: Int): Pokemon = pokemonCache[id]!!
+    fun updatePokemon(updated: Pokemon) {
+        pokemonCache[updated.id] = updated
+    }
+
 }
