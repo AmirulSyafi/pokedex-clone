@@ -2,6 +2,7 @@ package com.amiruls.pokedex.di
 
 import com.amiruls.pokedex.data.remote.PokemonApi
 import com.amiruls.pokedex.data.repository.PokemonRepository
+import com.amiruls.pokedex.data.repository.PokemonRepositoryInterface
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,6 +39,6 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providePokemonRepository(api: PokemonApi): PokemonRepository =
+    fun providePokemonRepository(api: PokemonApi): PokemonRepositoryInterface =
         PokemonRepository(api)
 }

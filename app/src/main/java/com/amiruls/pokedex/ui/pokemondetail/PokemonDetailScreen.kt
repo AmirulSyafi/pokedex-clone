@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Favorite
@@ -22,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,6 +45,12 @@ fun PokemonDetailScreen(
     val state by viewModel.uiState.collectAsState()
     val pokemon by viewModel.pokemon.collectAsState()
     val abilities by viewModel.abilities.collectAsState()
+
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(abilities) {
+        listState.scrollToItem(0)
+    }
 
     Scaffold(
         topBar = {
@@ -134,7 +142,7 @@ fun PokemonDetailScreen(
                             PokemonDetailItem(
                                 name = ability.name,
                                 description = ability.description,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().animateItem()
                             )
                         }
                     }

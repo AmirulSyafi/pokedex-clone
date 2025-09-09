@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -26,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,6 +50,12 @@ fun PokemonListScreen(
     val sortType by viewModel.sortType.collectAsState()
     val filter by viewModel.filter.collectAsState()
 
+    val listState = rememberLazyListState()
+    // Scroll to top whenever sort type or filter changes
+    LaunchedEffect(sortType, filter) {
+        listState.scrollToItem(0)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -57,17 +65,17 @@ fun PokemonListScreen(
                         when (sortType) {
                             SortType.BY_ID -> Icon(
                                 Icons.Default.List,
-                                contentDescription = "Sort by ID"
+                                contentDescription = "Sort A-Z"
                             )
 
                             SortType.NAME_ASC -> Icon(
                                 Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Sort A-Z"
+                                contentDescription = "Sort Z-A"
                             )
 
                             SortType.NAME_DESC -> Icon(
                                 Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Sort Z-A"
+                                contentDescription = "Sort by ID"
                             )
                         }
                     }
@@ -131,7 +139,9 @@ fun PokemonListScreen(
                             label = { Text("Favorites") }
                         )
                     }
+
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
@@ -146,6 +156,7 @@ fun PokemonListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { onPokemonClick(pokemon.id) }
+                                    .animateItem()
                             )
                         }
                     }

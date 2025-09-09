@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.amiruls.pokedex.data.model.Pokemon
 import com.amiruls.pokedex.data.repository.PokemonRepository
+import com.amiruls.pokedex.data.repository.PokemonRepositoryInterface
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PokemonListViewModel @Inject constructor(
-    private val repository: PokemonRepository
+    private val repository: PokemonRepositoryInterface
 ) : ViewModel() {
 
     private val _sortType = MutableStateFlow(SortType.BY_ID)
