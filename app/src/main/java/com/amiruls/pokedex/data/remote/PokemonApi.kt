@@ -12,5 +12,8 @@ interface PokemonApi {
     suspend fun getPokemonList(): JsonObject
 
     @GET("pokemon/{id}")
-    suspend fun getPokemonDetail(@Path("id") id: Int): Ability
+    suspend fun getPokemonDetail(@Path("id") id: Int): JsonObject
+
+    @GET("ability/{id}")
+    suspend fun getAbilityDetail(@Path("id") id: Int): JsonObject
 }

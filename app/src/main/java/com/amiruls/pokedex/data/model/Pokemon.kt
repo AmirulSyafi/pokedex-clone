@@ -4,6 +4,6 @@ data class Pokemon(
     val id: Int,
     val name: String,
     val sprite: String,
-    val isFavorite: Boolean,
-    val abilityIds: List<Int>
+    val isFavorite: Boolean = false,
+    val abilityIds: List<Int> = emptyList()
 )
