@@ -66,13 +66,8 @@ class InstrumentedTest {
         composeRule.onNodeWithText("Bulbasaur").performClick()
         composeRule.waitForIdle()
 
-        // Assert at least one node with text "Overgrow" exists
-        composeRule.onAllNodesWithText("Overgrow")
-            .fetchSemanticsNodes()
-            .isNotEmpty()
-            .let { hasNode ->
-                if (!hasNode) throw AssertionError("No node with text 'Overgrow' found")
-            }
+        composeRule.onNodeWithText("Overgrow").assertIsDisplayed()
+        composeRule.onNodeWithText("Chlorophyll").assertIsDisplayed()
     }
 
     @Test

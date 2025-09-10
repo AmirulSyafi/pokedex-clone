@@ -27,6 +27,9 @@ class FakePokemonApi () : PokemonApi {
     }
 
     override suspend fun getAbilityDetail(id: Int): JsonObject {
-        return readJsonFromAssets("ability_detail_65.json")
+        return if (id == 65)
+            readJsonFromAssets("ability_detail_65.json")
+        else
+            readJsonFromAssets("ability_detail_34.json")
     }
 }
