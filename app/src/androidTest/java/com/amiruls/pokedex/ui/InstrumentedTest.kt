@@ -1,10 +1,15 @@
 package com.amiruls.pokedex.ui
 
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteractionCollection
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import com.amiruls.pokedex.MainActivity
 import com.amiruls.pokedex.data.repository.PokemonRepositoryInterface
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -55,4 +60,41 @@ class InstrumentedTest {
             composeRule.onNodeWithText(expectedFirst).assertIsDisplayed()
         }
     }
+
+    @Test
+    fun testPokemonDetailDisplays() {
+        composeRule.onNodeWithText("Bulbasaur").performClick()
+        composeRule.waitForIdle()
+
+        // Assert at least one node with text "Overgrow" exists
+        composeRule.onAllNodesWithText("Overgrow")
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+            .let { hasNode ->
+                if (!hasNode) throw AssertionError("No node with text 'Overgrow' found")
+            }
+    }
+
+    @Test
+    fun testFavoritePokemon() {
+        // Open the detail screen of the first Pokémon ("Bulbasaur")
+        composeRule.onNodeWithText("Bulbasaur").performClick()
+        composeRule.waitForIdle()
+
+        // Mark it as a favorite by clicking the Favorite button in the Top App Bar
+        composeRule.onNodeWithContentDescription("Favorite").performClick()
+        composeRule.waitForIdle()
+
+        // Return to the Pokémon list by clicking the Back button
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        composeRule.waitForIdle()
+
+        // Filter the list to show only favorites by clicking the "Favorites" chip
+        composeRule.onNodeWithText("Favorites").performClick()
+        composeRule.waitForIdle()
+
+        // Verify that "Bulbasaur" is displayed in the filtered favorites list
+        composeRule.onNodeWithText("Bulbasaur").assertIsDisplayed()
+    }
+
 }
