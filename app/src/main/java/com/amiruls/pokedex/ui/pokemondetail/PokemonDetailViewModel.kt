@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.amiruls.pokedex.data.model.Ability
 import com.amiruls.pokedex.data.model.Pokemon
 import com.amiruls.pokedex.data.repository.PokemonRepository
+import com.amiruls.pokedex.data.repository.PokemonRepositoryInterface
 import com.amiruls.pokedex.ui.pokemonlist.PokemonListViewModel.PokemonListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PokemonDetailViewModel @Inject constructor(
-    private val repository: PokemonRepository,
+    private val repository: PokemonRepositoryInterface,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
