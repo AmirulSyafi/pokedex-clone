@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,17 +26,20 @@ class PokemonDetailViewModel @Inject constructor(
 
     private val pokemonId: Int = savedStateHandle["id"]!!
 
-    // Load pokemon from cache as it guarantee to have value
-    private val _pokemon = MutableStateFlow(repository.getPokemon(pokemonId))
-    val pokemon: StateFlow<Pokemon> = _pokemon
-
+    val pokemon: StateFlow<Pokemon> = repository.pokemonCacheFlow
+        .map { cache -> cache.getValue(pokemonId) } // safe because guaranteed
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = repository.pokemonCacheFlow.value.getValue(pokemonId)
+        )
     val abilities: StateFlow<List<Ability>> =
         combine(pokemon, repository.abilityCacheFlow) { pokemon, abilityCache ->
             // Map abilityIds -> Ability objects (only if present in cache)
-            pokemon.abilityIds.mapNotNull { id -> abilityCache[id] }
+            pokemon.abilityIds.mapNotNull { abilityId -> abilityCache[abilityId] }
         }.stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(0),
+            started = SharingStarted.Eagerly,
             initialValue = emptyList()
         )
 
@@ -49,11 +53,10 @@ class PokemonDetailViewModel @Inject constructor(
     fun loadAbilities() {
         viewModelScope.launch {
             try {
+
+                _uiState.value = PokemonDetailUiState.Loading
                 // Fetch Pokémon with abilities filled
                 val updatedPokemon = repository.fetchPokemonDetail(pokemonId)
-
-                // Update StateFlow so combine sees new abilityIds
-                _pokemon.value = updatedPokemon
 
                 // Fetch each ability detail
                 updatedPokemon.abilityIds.forEach { abilityId ->
@@ -70,10 +73,9 @@ class PokemonDetailViewModel @Inject constructor(
     }
 
     fun toggleFavorite() {
-        val current = _pokemon.value
+        val current = pokemon.value // current state from StateFlow
         val updated = current.copy(isFavorite = !current.isFavorite)
-        _pokemon.value = updated
-        repository.updatePokemon(updated)
+        repository.updatePokemon(updated) // this updates the cacheFlow in repo
     }
 
     sealed class PokemonDetailUiState {
